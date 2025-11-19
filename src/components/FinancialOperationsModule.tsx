@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Zap, Save } from 'lucide-react'; 
 import { Order, Payment } from '../lib/supabase';
 
+
 // Definición de tipos
 interface OrderWithPayments extends Order {
   payments: Payment[];
@@ -89,47 +90,52 @@ export function FinancialOperationsModule() {
     { totalPaid: 0, totalPending: 0, totalInvested: 0, totalRevenue: 0 }
   );
 
-    // FUNCIÓN CLAVE: Maneja la lógica de guardar la inversión/retiro
-    const handleApplyChanges = useCallback(async (type: 'invest' | 'withdraw') => {
-        setIsProcessing(true);
-        try {
-            const amount = type === 'invest' ? tempInvestedAmount : tempWithdrawn;
-            const description = type === 'invest' ? investDescription : withdrawDescription;
+   // En FinancialOperationsModule.tsx
 
-            if (amount <= 0 || !description.trim()) {
-                alert('El monto debe ser positivo y se requiere una descripción.');
-                setIsProcessing(false);
-                return;
-            }
-            
-            // ⚠️ IMPLEMENTACIÓN DE SUPABASE REAL:
-            /* const { error } = await supabase.from('withdrawals').insert([
-                { user_id: user.id, amount: amount, description: description, type: type === 'invest' ? 'inversion' : 'retiro' }
-            ]);
-            
-            if (error) throw error;
-            */
-            
-            // Actualización del estado local (simulando que se guardó exitosamente)
-            if (type === 'invest') {
-                setInvestedAmount(prev => prev + amount);
-                setTempInvestedAmount(0); 
-                setInvestDescription('');
-                console.log(`Inversión de $${amount.toFixed(2)} guardada. Descripción: ${description}`);
-            } else {
-                setWithdrawn(prev => prev + amount);
-                setTempWithdrawn(0);
-                setWithdrawDescription('');
-                console.log(`Retiro de $${amount.toFixed(2)} guardado. Descripción: ${description}`);
-            }
+const handleApplyChanges = useCallback(async (type: 'invest' | 'withdraw') => {
+    setIsProcessing(true);
+    try {
+        const amount = type === 'invest' ? tempInvestedAmount : tempWithdrawn;
+        const description = type === 'invest' ? investDescription : withdrawDescription;
 
-        } catch (error) {
-            console.error('Error al aplicar cambios:', error);
-            alert('Ocurrió un error al guardar los cambios.');
-        } finally {
+        if (amount <= 0 || !description.trim()) {
+            alert('El monto debe ser positivo y se requiere una descripción.');
             setIsProcessing(false);
+            return;
         }
-    }, [tempInvestedAmount, tempWithdrawn, investDescription, withdrawDescription, user]);
+
+        // 🚀 LLAMADA REAL A SUPABASE
+        const { error } = await supabase
+            .from('financial_transactions')
+            .insert({
+                user_id: user.id, // ID del usuario autenticado
+                amount: amount,
+                description: description,
+                type: type === 'invest' ? 'inversion' : 'retiro', // Usa el tipo ENUM definido
+            });
+
+        if (error) throw error;
+        
+        // Si la inserción es exitosa, actualizamos el estado local
+        if (type === 'invest') {
+            setInvestedAmount(prev => prev + amount);
+            setTempInvestedAmount(0);
+            setInvestDescription('');
+            alert(`Inversión de $${amount.toFixed(2)} registrada exitosamente.`);
+        } else {
+            setWithdrawn(prev => prev + amount);
+            setTempWithdrawn(0);
+            setWithdrawDescription('');
+            alert(`Retiro de $${amount.toFixed(2)} registrado exitosamente.`);
+        }
+
+    } catch (error) {
+        console.error('Error al aplicar cambios:', error);
+        alert('Ocurrió un error al guardar los cambios en la base de datos.');
+    } finally {
+        setIsProcessing(false);
+    }
+}, [tempInvestedAmount, tempWithdrawn, investDescription, withdrawDescription, user]); // Asegúrate de que 'user' esté en dependencias
 
 
     // Cálculo del Efectivo Neto (Liquidez Real)
@@ -187,6 +193,48 @@ export function FinancialOperationsModule() {
             justifyContent: 'center',
         };
     }, [chartData, totalChartValue]);
+    // En FinancialOperationsModule.tsx
+
+// 💡 Nueva función para cargar los totales acumulados
+const loadAccumulatedTotals = async () => {
+    if (!user) return;
+    
+    // Consulta para sumar todos los montos por tipo
+    const { data, error } = await supabase
+        .from('financial_transactions')
+        .select('type, amount')
+        .eq('user_id', user.id);
+
+    if (error) {
+        console.error("Error loading totals:", error);
+        return;
+    }
+
+    let totalInvested = 0;
+    let totalWithdrawn = 0;
+
+    data.forEach(transaction => {
+        const amountValue = parseFloat(transaction.amount.toString());
+        if (transaction.type === 'inversion') {
+            totalInvested += amountValue;
+        } else if (transaction.type === 'retiro') {
+            totalWithdrawn += amountValue;
+        }
+    });
+
+    setInvestedAmount(totalInvested);
+    setWithdrawn(totalWithdrawn);
+};
+
+useEffect(() => {
+    if (user) {
+        loadOrders();
+        loadAccumulatedTotals(); // ⬅️ Llamada para cargar los totales
+    }
+    // Inicializamos los inputs temporales a 0
+    setTempWithdrawn(0);
+    setTempInvestedAmount(0);
+}, [user]); // Dependencia del usuario para asegurar la carga después del login
 
 
   return (
