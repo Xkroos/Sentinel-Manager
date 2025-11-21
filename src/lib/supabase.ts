@@ -52,3 +52,15 @@ export interface FinancialTransaction {
   created_at: string; // Usualmente supabase agrega 'created_at' automáticamente
 }
 
+export interface InventoryItem {
+  id: string;
+  user_id: string;
+  name: string;
+  sku: string | null;
+  stock_quantity: number;
+  unit_price: number; // Precio de Compra
+  sale_price: number; // Precio de Venta (NUEVO)
+  supplier: string | null;
+  created_at: string;
+}
+

@@ -14,7 +14,7 @@ export function useExchangeRate() {
   const fetchRate = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv');
+      const response = await fetch('/api/v1/dollar?page=bcv');
 
       if (!response.ok) {
         throw new Error('Error al obtener la tasa');

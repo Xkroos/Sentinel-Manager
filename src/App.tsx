@@ -5,13 +5,19 @@ import { OrdersModule } from './components/OrdersModule';
 import { StatisticsModule } from './components/StatisticsModule';
 import { NotesModule } from './components/NotesModule';
 import { FinancialOperationsModule } from './components/FinancialOperationsModule';
-import { LogOut, ShoppingBag, TrendingUp, StickyNote, BarChart3 } from 'lucide-react';
+// 1. IMPORTAR EL NUEVO MÓDULO DE INVENTARIO
+import { InventoryModule } from './components/InventoryModule'; 
+// 1. IMPORTAR EL NUEVO ÍCONO (Package)
+import { LogOut, ShoppingBag, TrendingUp, StickyNote, BarChart3, Package } from 'lucide-react';
 
-type Tab = 'orders' | 'statistics' | 'notes' | 'operations';
+
+// 2. AGREGAR 'inventory' AL TIPO Tab
+type Tab = 'orders' | 'statistics' | 'notes' | 'operations' | 'inventory';
 
 function Dashboard() {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('orders');
+  // Establecemos 'inventory' como la pestaña inicial si lo deseas, o mantenemos 'orders'
+  const [activeTab, setActiveTab] = useState<Tab>('orders'); 
 
   if (!user) {
     return <Login />;
@@ -44,7 +50,8 @@ function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6">
-          <div className="flex gap-2 border-b border-slate-200">
+          <div className="flex gap-2 border-b border-slate-200 overflow-x-auto pb-1">
+            {/* BOTÓN DE ENCARGOS (ORDERS) */}
             <button
               onClick={() => setActiveTab('orders')}
               className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
@@ -56,6 +63,21 @@ function Dashboard() {
               <ShoppingBag className="w-5 h-5" />
               Encargos
             </button>
+            
+            {/* 3. BOTÓN DE INVENTARIO (NUEVO) */}
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+                activeTab === 'inventory'
+                  ? 'text-slate-800 border-b-2 border-slate-700'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Package className="w-5 h-5" />
+              Inventario
+            </button>
+            
+            {/* BOTÓN DE ESTADÍSTICAS */}
             <button
               onClick={() => setActiveTab('statistics')}
               className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
@@ -67,6 +89,8 @@ function Dashboard() {
               <TrendingUp className="w-5 h-5" />
               Estadísticas
             </button>
+            
+            {/* BOTÓN DE NOTAS */}
             <button
               onClick={() => setActiveTab('notes')}
               className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
@@ -78,6 +102,8 @@ function Dashboard() {
               <StickyNote className="w-5 h-5" />
               Notas
             </button>
+            
+            {/* BOTÓN DE OPERACIONES */}
             <button
               onClick={() => setActiveTab('operations')}
               className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
@@ -97,6 +123,8 @@ function Dashboard() {
           {activeTab === 'statistics' && <StatisticsModule />}
           {activeTab === 'notes' && <NotesModule />}
           {activeTab === 'operations' && <FinancialOperationsModule />}
+          {/* 3. RENDERIZADO DEL MÓDULO DE INVENTARIO (NUEVO) */}
+          {activeTab === 'inventory' && <InventoryModule />} 
         </div>
       </div>
     </div>

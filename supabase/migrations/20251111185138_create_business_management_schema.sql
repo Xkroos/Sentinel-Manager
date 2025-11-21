@@ -77,6 +77,25 @@ CREATE TABLE financial_transactions (
   type transaction_type NOT NULL, -- Define si es 'inversion' o 'retiro'
   transaction_date timestamp with time zone DEFAULT now() NOT NULL
 );
+-- 1. CREACIÓN DE LA TABLA INVENTORY_ITEMS
+CREATE TABLE public.inventory_items (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id uuid REFERENCES auth.users (id) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+
+    -- Campos de producto
+    name text NOT NULL,
+    sku text, -- Código de inventario (opcional)
+    supplier text,
+
+    -- Campos de gestión financiera y stock
+    stock_quantity integer NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
+    unit_price numeric(10, 2) NOT NULL DEFAULT 0.00, -- Costo de Compra (Inversión unitaria)
+    sale_price numeric(10, 2) NOT NULL DEFAULT 0.00, -- Precio de Venta unitario
+
+    -- Aseguramos que los precios sean no negativos
+    CONSTRAINT check_prices_positive CHECK (unit_price >= 0 AND sale_price >= 0)
+);
 
 CREATE TYPE transaction_type AS ENUM ('inversion', 'retiro');
 
@@ -84,6 +103,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inventory_items ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own orders"
   ON orders FOR SELECT
@@ -156,6 +176,18 @@ CREATE POLICY "Users can insert their own financial transactions"
   ON financial_transactions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+  CREATE POLICY "Users can view their own inventory items"
+ON public.inventory_items FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id);
+
+-- 5. Política para que los usuarios puedan CREAR, ACTUALIZAR y ELIMINAR sus propios ítems
+CREATE POLICY "Users can manage their own inventory items"
+ON public.inventory_items FOR ALL
+TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_name ON orders(customer_name);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
@@ -163,3 +195,4 @@ CREATE INDEX IF NOT EXISTS idx_orders_order_date ON orders(order_date);
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
+CREATE INDEX idx_inventory_items_user_id ON public.inventory_items (user_id);
